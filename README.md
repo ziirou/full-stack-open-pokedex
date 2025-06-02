@@ -1,8 +1,11 @@
-# Full Stack open CI/CD
+# Full Stack open CI/CD (exercise 11.2)
 
-This repository is used for the CI/CD module of the Full stack open course
+This repository contains the answers for the exercises of part 11 (the CI/CD module)
+of the Full Stack Open course (https://fullstackopen.com/en/part11).
 
-Fork the repository to complete course exercises
+Other parts could be found here: https://github.com/ziirou/fullstackopen
+
+This repository is forked from https://github.com/fullstack-hy2020/full-stack-open-pokedex
 
 ## Commands
 
