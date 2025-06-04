@@ -7,22 +7,6 @@ on:
       - testing
 
 jobs:
-  check_skip:
-    runs-on: ubuntu-22.04
-    outputs:
-      skip: ${{ steps.set.outputs.skip }}
-    steps:
-      - id: set
-        env:
-          COMMITS: ${{ toJson(github.event.commits) }}
-        run: |
-          if echo "$COMMITS" | jq -r '.[].message' | grep -q "#skip"; then
-            echo "skip=true" >> $GITHUB_OUTPUT
-            echo "skip=true"
-          else
-            echo "skip=false" >> $GITHUB_OUTPUT
-            echo "skip=false"
-          fi
   test_job_1:
     runs-on: ubuntu-22.04
     steps:
