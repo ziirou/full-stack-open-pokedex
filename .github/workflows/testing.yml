@@ -13,42 +13,29 @@ jobs:
       skip: ${{ steps.set.outputs.skip }}
     steps:
       - id: set
+        env:
+          COMMITS: ${{ toJson(github.event.commits) }}
         run: |
-          if [[ "${{ contains('#skipSEARCH', '#skip') }}" == "true" ]]; then
+          if echo "$COMMITS" | jq -r '.[].message' | grep -q "#skip"; then
             echo "skip=true" >> $GITHUB_OUTPUT
           else
             echo "skip=false" >> $GITHUB_OUTPUT
           fi
+          echo "$GITHUB_OUTPUT"
   test_job_1:
-    needs: check_skip
     runs-on: ubuntu-22.04
     steps:
-      - if: ${{ needs.check_skip.outputs.skip == 'true' }}
+      - if: ${{ contains(join(github.event.commits.*.message, ' '), '#skip') }}
         run: echo "this step in test_job_1 is executed"
-      - if: ${{ needs.check_skip.outputs.skip == 'false' }}
+      - if: ${{ !contains(join(github.event.commits.*.message, ' '), '#skip') }}
         run: echo "this step in test_job_1 will not be executed"
-      - uses: actions/checkout@v4
-      - name: github context
-        env:
-          GITHUB_CONTEXT: ${{ toJson(github) }}
-        run: echo "$GITHUB_CONTEXT"
-      - name: commits
-        env:
-          COMMITS: ${{ toJson(github.event.commits) }}
-        run: echo "$COMMITS"
-      - name: commit messages
-        env:
-          COMMITS: ${{ toJson(github.event.commits) }}
-        run: echo "$COMMITS" | jq -r '.[].message'
   test_job_2:
-    needs: check_skip
-    if: ${{ needs.check_skip.outputs.skip == 'true' }}
+    if: ${{ contains(join(github.event.commits.*.message, ' '), '#skip') }}
     runs-on: ubuntu-22.04
     steps:
       - run: echo "this step in test_job_2 is executed"
   test_job_3:
-    needs: check_skip
-    if: ${{ needs.check_skip.outputs.skip == 'false' }}
+    if: ${{ !contains(join(github.event.commits.*.message, ' '), '#skip') }}
     runs-on: ubuntu-22.04
     steps:
-      - run: echo "this step in test_job_2 will not be executed"
+      - run: echo "this step in test_job_3 will not be executed"
