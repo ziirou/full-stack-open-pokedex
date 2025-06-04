@@ -7,6 +7,7 @@ on:
   push:
     branches:
       - main
+      - testing
 
 jobs:
   test_job_1:
@@ -30,12 +31,12 @@ jobs:
           COMMITS: ${{ toJson(github.event.commits) }}
         run: echo "$COMMITS" | jq -r '.[].message'
   test_job_2:
-    if: ${{ github.env.CONDITION == 'true' }}
     runs-on: ubuntu-22.04
     steps:
-      - run: echo "this step in test_job_2 is executed"
+      - if: ${{ env.CONDITION == 'true' }}
+        run: echo "this step in test_job_2 is executed"
   test_job_3:
-    if: ${{ github.env.CONDITION == 'false' }}
     runs-on: ubuntu-22.04
     steps:
-      - run: echo "this step in test_job_2 will not be executed"
+      - if: ${{ env.CONDITION == 'false' }}
+        run: echo "this step in test_job_2 will not be executed"
