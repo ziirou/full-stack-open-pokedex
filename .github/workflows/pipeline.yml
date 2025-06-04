@@ -28,10 +28,18 @@ jobs:
           name: playwright-report
           path: playwright-report/
           retention-days: 30
+      - name: Trigger deployment
+        if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'push' && !cancelled() }}
+        run: curl https://api.render.com/deploy/srv-${{ secrets.RENDER_SERVICE_ID }}?key=${{ secrets.RENDER_API_KEY }}
+  tag_release:
+    if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'push' && !cancelled() }}
+    needs: [simple_deployment_pipeline]
+    runs-on: ubuntu-22.04
+    steps:
       - name: Bump version and push tag
         uses: anothrNick/github-tag-action@1.73.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Trigger deployment
-        if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'push' && !cancelled() }}
-        run: curl https://api.render.com/deploy/srv-${{ secrets.RENDER_SERVICE_ID }}?key=${{ secrets.RENDER_API_KEY }}
+          TAG_PREFIX: v
+          DEFAULT_BUMP: patch
+          DRY_RUN: true
