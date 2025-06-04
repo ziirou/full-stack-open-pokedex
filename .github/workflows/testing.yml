@@ -1,8 +1,5 @@
 name: Testing stuff
 
-env:
-  CONDITION: ${{ contains('#skipSEARCH', '#skip') }}
-
 on:
   push:
     branches:
@@ -10,12 +7,25 @@ on:
       - testing
 
 jobs:
+  check_skip:
+    runs-on: ubuntu-22.04
+    outputs:
+      skip: ${{ steps.set.outputs.skip }}
+    steps:
+      - id: set
+        run: |
+          if [[ "${{ contains('#skipSEARCH', '#skip') }}" == "true" ]]; then
+            echo "skip=true" >> $GITHUB_OUTPUT
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
   test_job_1:
+    needs: check_skip
     runs-on: ubuntu-22.04
     steps:
-      - if: ${{ env.CONDITION == 'true' }}
+      - if: ${{ needs.check_skip.outputs.skip == 'true' }}
         run: echo "this step in test_job_1 is executed"
-      - if: ${{ env.CONDITION == 'false' }}
+      - if: ${{ needs.check_skip.outputs.skip == 'false' }}
         run: echo "this step in test_job_1 will not be executed"
       - uses: actions/checkout@v4
       - name: github context
@@ -31,12 +41,14 @@ jobs:
           COMMITS: ${{ toJson(github.event.commits) }}
         run: echo "$COMMITS" | jq -r '.[].message'
   test_job_2:
+    needs: check_skip
+    if: ${{ needs.check_skip.outputs.skip == 'true' }}
     runs-on: ubuntu-22.04
     steps:
-      - if: ${{ env.CONDITION == 'true' }}
-        run: echo "this step in test_job_2 is executed"
+      - run: echo "this step in test_job_2 is executed"
   test_job_3:
+    needs: check_skip
+    if: ${{ needs.check_skip.outputs.skip == 'false' }}
     runs-on: ubuntu-22.04
     steps:
-      - if: ${{ env.CONDITION == 'false' }}
-        run: echo "this step in test_job_2 will not be executed"
+      - run: echo "this step in test_job_2 will not be executed"
