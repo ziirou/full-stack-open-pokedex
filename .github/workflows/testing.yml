@@ -1,14 +1,21 @@
 name: Testing stuff
 
+env:
+  CONDITION: ${{ contains('#skipSEARCH', '#skip') }}
+
 on:
   push:
     branches:
       - main
 
 jobs:
-  a_test_job:
+  test_job_1:
     runs-on: ubuntu-22.04
     steps:
+      - if: ${{ env.CONDITION == 'true' }}
+        run: echo "this step in test_job_1 is executed"
+      - if: ${{ env.CONDITION == 'false' }}
+        run: echo "this step in test_job_1 will not be executed"
       - uses: actions/checkout@v4
       - name: github context
         env:
@@ -22,3 +29,13 @@ jobs:
         env:
           COMMITS: ${{ toJson(github.event.commits) }}
         run: echo "$COMMITS" | jq -r '.[].message'
+  test_job_2:
+    if: ${{ github.env.CONDITION == 'true' }}
+    runs-on: ubuntu-22.04
+    steps:
+      - run: echo "this step in test_job_2 is executed"
+  test_job_3:
+    if: ${{ github.env.CONDITION == 'false' }}
+    runs-on: ubuntu-22.04
+    steps:
+      - run: echo "this step in test_job_2 will not be executed"
