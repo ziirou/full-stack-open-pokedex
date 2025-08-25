@@ -11,6 +11,8 @@ on:
 jobs:
   simple_deployment_pipeline:
     runs-on: ubuntu-22.04
+    outputs:
+      skip: ${{ steps.check_skip.outputs.skip }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -28,16 +30,12 @@ jobs:
           name: playwright-report
           path: playwright-report/
           retention-days: 30
-      - name: Should deploy?
-        id: should_deploy
+      - id: check_skip
+        if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'push' }}
         run: |
-          if [[ "${{ github.ref }}" == "refs/heads/main" && "${{ github.event_name }}" == "push" && ! $(echo '${{ toJson(github.event.commits) }}' | jq -r '.[].message' | grep -q "#skip") ]]; then
-            echo "deploy=true" >> $GITHUB_OUTPUT
-          else
-            echo "deploy=false" >> $GITHUB_OUTPUT
-          fi
+          echo "skip=$(echo '${{ toJson(github.event.commits) }}' | jq -r '.[].message' | grep -q '#skip' && echo true || echo false)" >> $GITHUB_OUTPUT
       - name: Trigger deployment
-        if: ${{ steps.should_deploy.outputs.deploy == 'true' }}
+        if: ${{ steps.check_skip.outputs.skip == 'false' }}
         run: curl https://api.render.com/deploy/srv-${{ secrets.RENDER_SERVICE_ID }}?key=${{ secrets.RENDER_API_KEY }}
       - name: Set notification title and label
         id: notif_title
@@ -54,7 +52,7 @@ jobs:
           fi
       - name: Discord Notify Deployed
         uses: rjstone/discord-webhook-notify@v2
-        if: ${{ success() && steps.should_deploy.outputs.deploy == 'true' }}
+        if: ${{ success() && steps.check_skip.outputs.skip == 'false' }}
         with:
           webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
           severity: info
@@ -65,7 +63,7 @@ jobs:
             ${{ steps.notif_title.outputs.label }}: ${{ steps.notif_title.outputs.title }}
       - name: Discord Notify Deployment Skipped
         uses: rjstone/discord-webhook-notify@v2
-        if: ${{ steps.should_deploy.outputs.deploy == 'false' }}
+        if: ${{ steps.check_skip.outputs.skip == 'true' }}
         with:
           webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
           severity: info
@@ -86,7 +84,7 @@ jobs:
             By : ${{ github.actor }}
             ${{ steps.notif_title.outputs.label }}: ${{ steps.notif_title.outputs.title }}
   tag_release:
-    if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'push' && !contains(join(github.event.commits.*.message, ' '), '#skip') }}
+    if: ${{ needs.simple_deployment_pipeline.outputs.skip != 'true' }}
     needs: [simple_deployment_pipeline]
     runs-on: ubuntu-22.04
     steps:
