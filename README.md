@@ -1,4 +1,4 @@
-# Full Stack open CI/CD (exercises 11.1-11.18)
+# Full Stack open CI/CD (exercises 11.1-11.19)
 
 This repository contains the answers for the exercises of part 11 (the CI/CD module)
 of the Full Stack Open course (https://fullstackopen.com/en/part11).
