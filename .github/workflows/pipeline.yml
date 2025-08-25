@@ -39,7 +39,7 @@ jobs:
           severity: info
           details: |
             All tests passed - a new version deployed!
-            Commit : ${{ github.sha }}
+            Commit : [${{ github.sha }}](https://github.com/${{ github.repository }}/commit/${{ github.sha }})
             By : ${{ github.actor }}
             Title: ${{ github.event.head_commit.message }}
       - name: Discord Notify Error
@@ -50,7 +50,7 @@ jobs:
           severity: error
           details: |
             Build failed!
-            Commit : ${{ github.sha }}
+            Commit : [${{ github.sha }}](https://github.com/${{ github.repository }}/commit/${{ github.sha }})
             By : ${{ github.actor }}
             Title: ${{ github.event.head_commit.message }}
   tag_release:
