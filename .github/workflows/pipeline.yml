@@ -30,10 +30,14 @@ jobs:
           name: playwright-report
           path: playwright-report/
           retention-days: 30
-      - id: check_skip
-        if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'push' }}
+      - name: Check skip
+        id: check_skip
         run: |
-          echo "skip=$(echo '${{ toJson(github.event.commits) }}' | jq -r '.[].message' | grep -q '#skip' && echo true || echo false)" >> $GITHUB_OUTPUT
+          if [[ "${{ github.ref }}" == "refs/heads/main" && "${{ github.event_name }}" == "push" && ! $(echo '${{ toJson(github.event.commits) }}' | jq -r '.[].message' | grep -q "#skip") ]]; then
+            echo "skip=true" >> $GITHUB_OUTPUT
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
       - name: Trigger deployment
         if: ${{ steps.check_skip.outputs.skip == 'false' }}
         run: curl https://api.render.com/deploy/srv-${{ secrets.RENDER_SERVICE_ID }}?key=${{ secrets.RENDER_API_KEY }}
@@ -63,7 +67,7 @@ jobs:
             ${{ steps.notif_title.outputs.label }}: ${{ steps.notif_title.outputs.title }}
       - name: Discord Notify Deployment Skipped
         uses: rjstone/discord-webhook-notify@v2
-        if: ${{ steps.check_skip.outputs.skip == 'true' }}
+        if: ${{ success() && steps.check_skip.outputs.skip == 'true' }}
         with:
           webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
           severity: info
