@@ -28,8 +28,16 @@ jobs:
           name: playwright-report
           path: playwright-report/
           retention-days: 30
+      - name: Should deploy?
+        id: should_deploy
+        run: |
+          if [[ "${{ github.ref }}" == "refs/heads/main" && "${{ github.event_name }}" == "push" && ! $(echo '${{ toJson(github.event.commits) }}' | jq -r '.[].message' | grep -q "#skip") ]]; then
+            echo "deploy=true" >> $GITHUB_OUTPUT
+          else
+            echo "deploy=false" >> $GITHUB_OUTPUT
+          fi
       - name: Trigger deployment
-        if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'push' && !contains(join(github.event.commits.*.message, ' '), '#skip') }}
+        if: ${{ steps.should_deploy.outputs.deploy == 'true' }}
         run: curl https://api.render.com/deploy/srv-${{ secrets.RENDER_SERVICE_ID }}?key=${{ secrets.RENDER_API_KEY }}
       - name: Set notification title and label
         id: notif_title
@@ -44,14 +52,25 @@ jobs:
             echo "label=Title" >> $GITHUB_OUTPUT
             echo "title=No title available" >> $GITHUB_OUTPUT
           fi
-      - name: Discord Notify Success
+      - name: Discord Notify Deployed
         uses: rjstone/discord-webhook-notify@v2
-        if: ${{ success() }}
+        if: ${{ success() && steps.should_deploy.outputs.deploy == 'true' }}
         with:
           webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
           severity: info
           details: |
             All tests passed - a new version deployed!
+            Commit : [${{ github.sha }}](https://github.com/${{ github.repository }}/commit/${{ github.sha }})
+            By : ${{ github.actor }}
+            ${{ steps.notif_title.outputs.label }}: ${{ steps.notif_title.outputs.title }}
+      - name: Discord Notify Deployment Skipped
+        uses: rjstone/discord-webhook-notify@v2
+        if: ${{ steps.should_deploy.outputs.deploy == 'false' }}
+        with:
+          webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
+          severity: info
+          details: |
+            All tests passed - deployment skipped!
             Commit : [${{ github.sha }}](https://github.com/${{ github.repository }}/commit/${{ github.sha }})
             By : ${{ github.actor }}
             ${{ steps.notif_title.outputs.label }}: ${{ steps.notif_title.outputs.title }}
