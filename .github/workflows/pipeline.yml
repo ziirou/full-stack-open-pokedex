@@ -40,7 +40,7 @@ jobs:
       - name: Check skip
         id: check_skip
         run: |
-          if [[ "${{ github.ref }}" == "refs/heads/main" && "${{ github.event_name }}" == "push" && ! $(echo '${{ toJson(github.event.commits) }}' | jq -r '.[].message' | grep -q "#skip") ]]; then
+          if [ "${{ github.ref == 'refs/heads/main' && github.event_name == 'push' && !contains(join(github.event.commits.*.message, ' '), '#skip') }}" ]; then
             echo "skip=false" >> $GITHUB_OUTPUT
           else
             echo "skip=true" >> $GITHUB_OUTPUT
