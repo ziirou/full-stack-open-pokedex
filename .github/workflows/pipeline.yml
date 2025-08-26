@@ -39,14 +39,10 @@ jobs:
           retention-days: 30
       - name: Check skip
         id: check_skip
-        run: |
-          if [ "${{ github.ref == 'refs/heads/main' && github.event_name == 'push' && !contains(join(github.event.commits.*.message, ' '), '#skip') }}" ]; then
-            echo "skip=false" >> $GITHUB_OUTPUT
-          else
-            echo "skip=true" >> $GITHUB_OUTPUT
-          fi
+        if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'push' && contains(join(github.event.commits.*.message, ' '), '#skip') }}
+        run: echo "skip=true" >> $GITHUB_OUTPUT
       - name: Trigger deployment
-        if: ${{ steps.check_skip.outputs.skip == 'false' }}
+        if: ${{ steps.check_skip.outputs.skip != 'true' }}
         run: curl https://api.render.com/deploy/srv-${{ secrets.RENDER_SERVICE_ID }}?key=${{ secrets.RENDER_API_KEY }}
       - name: Set notification title and label
         id: notif_title
@@ -64,7 +60,7 @@ jobs:
           fi
       - name: Discord Notify Deployed
         uses: rjstone/discord-webhook-notify@v2
-        if: ${{ success() && steps.check_skip.outputs.skip == 'false' }}
+        if: ${{ success() && steps.check_skip.outputs.skip != 'true' }}
         with:
           webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
           severity: info
