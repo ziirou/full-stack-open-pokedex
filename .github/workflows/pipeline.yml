@@ -1,4 +1,4 @@
-name: Deployment pipeline
+name: Pokedex - Deployment pipeline
 
 on:
   push:
@@ -43,7 +43,7 @@ jobs:
         run: echo "skip=true" >> $GITHUB_OUTPUT
       - name: Trigger deployment
         if: ${{ steps.check_skip.outputs.skip != 'true' }}
-        run: curl https://api.render.com/deploy/srv-${{ secrets.RENDER_SERVICE_ID }}?key=${{ secrets.RENDER_API_KEY }}
+        run: curl -f https://api.render.com/deploy/srv-${{ secrets.RENDER_SERVICE_ID }}?key=${{ secrets.RENDER_API_KEY }}
       - name: Set notification title and label
         id: notif_title
         if: always()
@@ -95,6 +95,8 @@ jobs:
     if: ${{ needs.simple_deployment_pipeline.outputs.skip != 'true' }}
     needs: [simple_deployment_pipeline]
     runs-on: ubuntu-22.04
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
       - name: Bump version and push tag
@@ -114,3 +116,10 @@ jobs:
           severity: info
           details: |
             A new tag released: [${{ steps.get_tag.outputs.tag }}](https://github.com/${{ github.repository }}/releases/tag/${{ steps.get_tag.outputs.tag }})
+      - name: Discord Notify Tag Error
+        uses: rjstone/discord-webhook-notify@v2
+        if: ${{ failure() }}
+        with:
+          webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
+          severity: error
+          details: Tag creation failed!
